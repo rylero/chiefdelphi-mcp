@@ -42,6 +42,20 @@ export const CATEGORIES: Category[] = [
   { slug: "cpp", id: 74, name: "C/C++", path: "technical/c-c", designRelevant: false },
   { slug: "labview", id: 73, name: "NI LabVIEW", path: "technical/ni-labview", designRelevant: false },
   { slug: "photonvision", id: 87, name: "PhotonVision", path: "technical/photonvision", designRelevant: false },
+  {
+    slug: "open-alliance",
+    id: 89,
+    name: "FRC Open Alliance",
+    path: "first/open-alliance",
+    designRelevant: true,
+  },
+  {
+    slug: "ftc-open-alliance",
+    id: 90,
+    name: "FTC Open Alliance",
+    path: "open-alliance",
+    designRelevant: false,
+  },
   { slug: "papers", id: 82, name: "CD-Media: Papers", path: "cd-media-papers", designRelevant: true },
   { slug: "photos", id: 11, name: "CD-Media: Photos", path: "cd-media", designRelevant: false },
   { slug: "competition", id: 5, name: "Competition", path: "competition", designRelevant: false },
@@ -60,6 +74,11 @@ const ALIASES: Record<string, string> = {
   "c-c": "cpp",
   "c++": "cpp",
   sw: "solidworks",
+  oa: "open-alliance",
+  openalliance: "open-alliance",
+  "open alliance": "open-alliance",
+  "frc open alliance": "open-alliance",
+  "ftc open alliance": "ftc-open-alliance",
 };
 
 export function isDesignBias(input: string | undefined): boolean {

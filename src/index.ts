@@ -5,7 +5,7 @@ import { getTopic, listCategories, listLatest, searchTopics } from "./chiefdelph
 import { HttpError } from "./http.js";
 import { formatIndexStatus, ingestKnowledge, searchKnowledge } from "./knowledge.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 const readOnly = { readOnlyHint: true, openWorldHint: true } as const;
 
@@ -20,7 +20,7 @@ function createServer(): McpServer {
     {
       title: "Search Chief Delphi knowledge base",
       description:
-        "Primary tool for FRC mechanical/design research. Searches inside posts and comments, not just thread titles, using a local full-text index. Fetches relevant threads on demand so details like roller durometer, belt size, or algae-handling tricks can be found and cited. Prefer this over search_topics for questions like designing an intake for a specific game piece.",
+        "Primary tool for FRC mechanical/design research. Searches inside posts and comments, not just thread titles, using a local full-text index. Fetches relevant threads on demand, including Open Alliance build threads (details live in comments, not titles). Prefer this over search_topics for questions like designing an intake or a printed camera mount.",
       inputSchema: z.object({
         query: z
           .string()
@@ -37,7 +37,7 @@ function createServer(): McpServer {
         category: z
           .string()
           .optional()
-          .describe('Optional category slug, or "design" to stay in CAD/mech/papers feeds.'),
+          .describe('Optional category slug, or "design" to stay in CAD/mech/Open Alliance/papers feeds.'),
         limit: z.number().int().min(1).max(20).optional().describe("Max matching comments to return, default 10"),
         max_topics: z
           .number()
@@ -46,11 +46,15 @@ function createServer(): McpServer {
           .max(25)
           .optional()
           .describe("Max new threads to fully download into the index this call, default 12"),
+        include_open_alliance: z
+          .boolean()
+          .optional()
+          .describe("Also search recent Open Alliance build threads (default true). Set false to skip them."),
       }),
       annotations: readOnly,
     },
-    async ({ query, game_piece, category, limit, max_topics }) =>
-      textResult(searchKnowledge({ query, game_piece, category, limit, max_topics })),
+    async ({ query, game_piece, category, limit, max_topics, include_open_alliance }) =>
+      textResult(searchKnowledge({ query, game_piece, category, limit, max_topics, include_open_alliance })),
   );
 
   server.registerTool(
@@ -133,7 +137,7 @@ function createServer(): McpServer {
     {
       title: "Ingest Chief Delphi threads",
       description:
-        "Download full threads (all comments) into the local knowledge base so later search_knowledge calls can find details without refetching. Pass a query to choose related threads, or omit to preload recent design/CAD discussion.",
+        "Download full threads (all comments) into the local knowledge base so later search_knowledge calls can find details without refetching. Pass a query to choose related threads, or omit to preload recent design/CAD and Open Alliance discussion.",
       inputSchema: z.object({
         query: z.string().optional().describe("Optional query used to pick which recent threads to ingest"),
         category: z.string().optional().describe("Optional category slug or design"),
@@ -182,12 +186,13 @@ function createServer(): McpServer {
 Question: ${question}
 
 Do this:
-1. Call search_knowledge with a focused query. Set game_piece when the question is about handling a specific object (algae, coral, note, cone, cube, cargo, etc.).
-2. If the first pass is thin, call ingest_knowledge with the same query to pull more full threads, then search_knowledge again.
-3. Call get_topic on 1–3 of the most useful topic IDs when you need surrounding context.
-4. Answer from those posts: what teams did, COTS vs custom, years/games if mentioned, and tradeoffs.
-5. Cite Chief Delphi URLs, authors, and dates. Quote small details (sizes, durometers, belt types, failure modes) when they appear. If threads disagree, say so.
-6. Do not invent team numbers, part numbers, or results that were not in the fetched posts.`,
+1. Call search_knowledge with a focused query (hardware nouns, materials, mechanism). Set game_piece when the question is about handling a specific object.
+2. Treat Open Alliance build threads as a primary source: details live in comments, not titles. search_knowledge includes those feeds by default.
+3. If the first pass is thin, call ingest_knowledge with the same query, then search_knowledge again.
+4. Call get_topic on 1–3 of the most useful topic IDs when you need surrounding context.
+5. Answer from those posts: what teams did, COTS vs custom, years/games if mentioned, and tradeoffs. Prefer recent / current-season evidence unless the user asks for history.
+6. Cite Chief Delphi URLs, authors, and dates. Quote small details when they appear. If threads disagree, say so.
+7. Do not invent team numbers, part numbers, or results that were not in the fetched posts.`,
           },
         },
       ],

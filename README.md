@@ -12,7 +12,7 @@ It does not post, scrape logged-in pages, or call `/search.json`.
 
 | Tool | What it does |
 | --- | --- |
-| `search_knowledge` | **Main tool.** Full-text search inside posts/comments. Fetches related threads into the index on demand. Optional `game_piece` (algae, coral, note, cone, …). |
+| `search_knowledge` | **Main tool.** Full-text search inside posts/comments. Fetches related threads on demand, including **Open Alliance** build blogs (details live in comments). Optional `game_piece` (algae, coral, note, cone, …). |
 | `ingest_knowledge` | Preload full threads into the index so later searches are deeper. |
 | `index_status` | How many topics/comments are indexed. |
 | `get_topic` | Read a whole thread (and add it to the index). |
@@ -28,7 +28,9 @@ Typical flow for an intake:
 2. If results are thin, `ingest_knowledge` with the same query, then search again
 3. `get_topic` on the best topic IDs for surrounding context
 
-The index lives in `data/chiefdelphi.sqlite` and grows as you research. Discovery uses **Chief Delphi tag RSS** (`/tag/intake.rss`, `/tag/reefscape.rss`, …) and **public sitemaps** (topic slugs), not DuckDuckGo. Once a thread is fetched, every comment is searchable.
+The index lives in `data/chiefdelphi.sqlite` and grows as you research. Discovery uses **Chief Delphi tag RSS**, **Open Alliance** category RSS, and **public sitemaps** (topic slugs). Once a thread is fetched, every comment is searchable.
+
+A project skill at `.cursor/skills/chiefdelphi/SKILL.md` tells agents how to rewrite queries and treat Open Alliance threads as a primary source. Copy that folder to `~/.cursor/skills/chiefdelphi` if you want the same workflow in other workspaces.
 
 ## Run locally
 

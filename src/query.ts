@@ -1,4 +1,4 @@
-import { expansionsFor, GAME_PIECES, STOP_WORDS, SYNONYMS } from "./synonyms.js";
+import { expansionsFor, GAME_PIECES, normalizeToken, STOP_WORDS, SYNONYMS, WEAK_DISCOVERY_TOKENS } from "./synonyms.js";
 
 export interface ParsedQuery {
   raw: string;
@@ -12,11 +12,15 @@ export interface ParsedQuery {
 }
 
 export function tokenizeQuery(query: string): string[] {
-  return query
-    .toLowerCase()
-    .split(/\s+/)
-    .map((t) => t.replace(/[^\w+.-]/g, ""))
-    .filter((t) => t.length > 1 && !STOP_WORDS.has(t));
+  const seen = new Set<string>();
+  const tokens: string[] = [];
+  for (const raw of query.toLowerCase().replace(/[-_/]+/g, " ").split(/\s+/)) {
+    const token = normalizeToken(raw.replace(/[^\w+.-]/g, ""));
+    if (token.length < 2 || STOP_WORDS.has(token) || seen.has(token)) continue;
+    seen.add(token);
+    tokens.push(token);
+  }
+  return tokens;
 }
 
 export function parseQuery(query: string, gamePiece?: string): ParsedQuery {
@@ -27,8 +31,10 @@ export function parseQuery(query: string, gamePiece?: string): ParsedQuery {
     if (!tokens.includes(mapped) && !tokens.includes(piece)) tokens.push(mapped);
   }
 
-  const requiredTokens = tokens.filter((token) => token in SYNONYMS);
-  const required = requiredTokens.length > 0 ? requiredTokens : tokens;
+  const synonymTokens = tokens.filter((token) => token in SYNONYMS);
+  const core = synonymTokens.filter((token) => !WEAK_DISCOVERY_TOKENS.has(token));
+  const weak = synonymTokens.filter((token) => WEAK_DISCOVERY_TOKENS.has(token));
+  const required = core.length > 0 ? [...core, ...weak.slice(0, 2)] : synonymTokens.length > 0 ? synonymTokens : tokens;
   const groups = tokens.map((token) => expansionsFor(token));
   const requiredGroups = required.map((token) => expansionsFor(token));
   return {
@@ -41,6 +47,19 @@ export function parseQuery(query: string, gamePiece?: string): ParsedQuery {
     ftsExpanded: andGroups(groups),
     ftsBroad: orTerms(groups.flat()),
   };
+}
+
+/** Rough chronological boost from Discourse topic IDs (higher = newer). */
+export function recencyScore(topicId: number): number {
+  if (topicId >= 500000) return 12;
+  if (topicId >= 400000) return 8;
+  if (topicId >= 250000) return 4;
+  if (topicId >= 150000) return 0;
+  return -8;
+}
+
+export function looksHistorical(tokens: string[]): boolean {
+  return tokens.some((token) => /^(19|20)\d{2}$/.test(token) && Number(token) < 2018);
 }
 
 export function scoreText(text: string, tokens: string[]): number {

@@ -38,6 +38,11 @@ assert(parsed.tokens.includes("intake"), "tokenize intake");
 assert(parsed.tokens.includes("algae"), "tokenize algae");
 assert(parsed.ftsStrict.includes("intake") && parsed.ftsStrict.includes("algae"), "strict AND query");
 assert(parsed.ftsExpanded.includes("OR"), "expanded synonyms");
+const camera = parseQuery("3dp camera mounts more robust");
+assert(camera.tokens.includes("3dprint"), "normalize 3dp");
+assert(camera.tokens.includes("mount"), "normalize mounts");
+assert(!camera.tokens.includes("more"), "drop stopword more");
+assert(camera.groups.some((g) => g.includes("limelight")), "camera expands to limelight");
 console.error("query parse ok");
 
 const knowledge = await searchKnowledge({

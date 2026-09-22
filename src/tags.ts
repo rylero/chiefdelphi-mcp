@@ -13,6 +13,13 @@ export const KNOWN_TAGS = [
   "pneumatics",
   "gearbox",
   "manufacturing",
+  "openalliance",
+  "3dprinting",
+  "camera",
+  "limelight",
+  "photonvision",
+  "vision",
+  "sensors",
 ] as const;
 
 const TOKEN_TO_TAGS: Record<string, string[]> = {
@@ -45,6 +52,17 @@ const TOKEN_TO_TAGS: Record<string, string[]> = {
   cube: ["charged-up"],
   charged: ["charged-up"],
   chargedup: ["charged-up"],
+  "3dprint": ["3dprinting"],
+  "3dp": ["3dprinting"],
+  printed: ["3dprinting"],
+  pla: ["3dprinting"],
+  petg: ["3dprinting"],
+  camera: ["camera", "limelight", "photonvision"],
+  limelight: ["limelight", "camera"],
+  photonvision: ["photonvision", "vision"],
+  vision: ["vision", "photonvision"],
+  openalliance: ["openalliance"],
+  oa: ["openalliance"],
 };
 
 export function tagsForTokens(tokens: string[]): string[] {

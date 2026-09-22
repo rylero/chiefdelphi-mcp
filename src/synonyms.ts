@@ -57,6 +57,14 @@ export const STOP_WORDS = new Set([
   "frc",
   "robot",
   "robots",
+  "other",
+  "they",
+  "them",
+  "doing",
+  "are",
+  "was",
+  "were",
+  "can",
 ]);
 
 /**
@@ -119,8 +127,57 @@ export const SYNONYMS: Record<string, string[]> = {
   reefscape: ["reefscape", "algae", "coral", "processor", "reef"],
   crescendo: ["crescendo", "note", "speaker", "amp", "trap"],
   charged: ["chargedup", "cone", "cube"],
-  "chargedup": ["chargedup", "cone", "cube"],
+  chargedup: ["chargedup", "cone", "cube"],
+  "3dp": ["3dprint", "3dp", "3dprinted", "printed", "pla", "petg", "abs", "tpu", "filament"],
+  "3dprint": ["3dprint", "3dp", "3dprinted", "printed", "pla", "petg", "abs", "tpu", "filament"],
+  "3dprinted": ["3dprint", "3dp", "printed", "pla", "petg"],
+  printed: ["3dprint", "3dp", "printed", "pla", "petg", "filament"],
+  pla: ["pla", "petg", "abs", "tpu", "3dprint", "printed"],
+  petg: ["petg", "pla", "abs", "3dprint", "printed"],
+  camera: ["camera", "limelight", "photonvision", "arducam", "vision"],
+  limelight: ["limelight", "camera", "photonvision", "vision"],
+  photonvision: ["photonvision", "limelight", "camera", "vision"],
+  vision: ["vision", "camera", "limelight", "photonvision", "apriltag"],
+  mount: ["mount", "bracket", "housing", "shroud", "cage"],
+  bracket: ["bracket", "mount", "housing"],
+  robust: ["robust", "strength", "crack", "cracked", "broke", "broken", "fail", "failure", "stiff"],
+  openalliance: ["openalliance", "oa"],
 };
+
+/** Tokens that match too much history if searched alone. */
+export const WEAK_DISCOVERY_TOKENS = new Set([
+  "camera",
+  "cameras",
+  "mount",
+  "mounts",
+  "robust",
+  "vision",
+  "printed",
+  "printing",
+  "bracket",
+  "housing",
+  "sensor",
+  "sensors",
+]);
+
+const TOKEN_ALIASES: Record<string, string> = {
+  "3dp": "3dprint",
+  "3dprinted": "3dprint",
+  "3dprinting": "3dprint",
+  "3d-printed": "3dprint",
+  "3d-print": "3dprint",
+  mounts: "mount",
+  cameras: "camera",
+  robustness: "robust",
+  limelights: "limelight",
+  oa: "openalliance",
+  "open-alliance": "openalliance",
+};
+
+export function normalizeToken(token: string): string {
+  const key = token.toLowerCase().replace(/[^a-z0-9+.-]/g, "");
+  return TOKEN_ALIASES[key] ?? key;
+}
 
 export const GAME_PIECES: Record<string, string> = {
   algae: "algae",
@@ -146,9 +203,9 @@ export const GAME_PIECES: Record<string, string> = {
 };
 
 export function expansionsFor(token: string): string[] {
-  const key = token.toLowerCase().replace(/[^a-z0-9+.-]/g, "");
+  const key = normalizeToken(token);
   const extra = SYNONYMS[key];
-  const terms = extra ? [key, ...extra] : [token];
+  const terms = extra ? [key, ...extra] : [key || token];
   return unique(terms.map((t) => t.toLowerCase()).filter((t) => t.length > 1));
 }
 

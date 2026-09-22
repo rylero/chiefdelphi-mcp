@@ -2,7 +2,7 @@ import { CATEGORIES, categoryRssUrl, findCategory, isDesignBias, type Category }
 import { excerpt } from "./html.js";
 import { fetchText } from "./http.js";
 import { ingestFeedItems } from "./ingest.js";
-import { scoreText, tokenizeQuery } from "./query.js";
+import { parseQuery, recencyScore, scoreText } from "./query.js";
 import {
   formatTopicList,
   parseRss,
@@ -126,8 +126,8 @@ export function listCategories(): string {
   });
   return [
     "Chief Delphi categories this server can filter on.",
-    "Use `cad`, `manufacturing`, `technical-discussion`, or `papers` for mechanical/design research.",
-    "For search_topics, `design` searches several mech/CAD feeds instead of one category. Alias: `whitepaper` → papers.",
+    "Use `cad`, `manufacturing`, `technical-discussion`, `open-alliance`, or `papers` for mechanical/design research.",
+    "For search_topics, `design` searches several mech/CAD and Open Alliance feeds instead of one category. Alias: `whitepaper` → papers, `oa` → open-alliance.",
     "",
     "| slug | name | design-relevant |",
     "| --- | --- | --- |",
@@ -144,12 +144,16 @@ export async function discoverRecentTopics(args: {
   const limit = args.limit ?? 12;
   const category = findCategory(args.category);
   const designBias = args.designBias ?? isDesignBias(args.category);
-  const terms = tokenizeQuery(args.query);
+  const parsed = parseQuery(args.query);
+  const terms = parsed.groups.flat();
   const slugs = category
     ? [category.slug]
-    : designBias
-      ? ["technical", "technical-discussion", "cad", "manufacturing", "kit-hardware", "papers"]
-      : ["technical", "cad", "technical-discussion", "kit-hardware", "papers"];
+    : [
+        ...(designBias
+          ? ["technical", "technical-discussion", "cad", "manufacturing", "kit-hardware", "papers", "open-alliance"]
+          : ["technical", "cad", "technical-discussion", "kit-hardware", "papers"]),
+        ...extraCategorySlugs(parsed.tokens),
+      ];
 
   const feeds: Array<{ label: string; url: string; tagged?: boolean }> = category
     ? [{ label: category.slug, url: categoryRssUrl(category) }]
@@ -175,7 +179,8 @@ export async function discoverRecentTopics(args: {
         const score =
           scoreText(item.title, terms) * 2 +
           scoreText(`${item.title}\n${item.markdown}`, terms) +
-          (feed.tagged ? 4 : 0);
+          (feed.tagged ? 4 : 0) +
+          recencyScore(id);
         if (terms.length > 0 && score <= 0) continue;
         if (id) seen.add(id);
         scored.push({ item, score });
@@ -186,6 +191,29 @@ export async function discoverRecentTopics(args: {
   }
   scored.sort((a, b) => b.score - a.score || Date.parse(b.item.published) - Date.parse(a.item.published));
   return { items: scored.slice(0, limit).map((row) => row.item) };
+}
+
+export async function latestCategoryTopics(slug: string, limit: number): Promise<FeedItem[]> {
+  const category = findCategory(slug);
+  if (!category) return [];
+  try {
+    const xml = await fetchText(categoryRssUrl(category), { ttlMs: 5 * 60 * 1000 });
+    return parseRss(xml).items.slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+function extraCategorySlugs(tokens: string[]): string[] {
+  const extra: string[] = [];
+  if (tokens.some((t) => ["camera", "limelight", "photonvision", "vision", "apriltag"].includes(t))) {
+    extra.push("sensors", "photonvision");
+  }
+  if (tokens.some((t) => ["3dprint", "3dp", "printed", "pla", "petg"].includes(t))) {
+    extra.push("manufacturing");
+  }
+  if (tokens.includes("ftc")) extra.push("ftc-open-alliance");
+  return extra;
 }
 
 function buildWebQuery(query: string, category: Category | undefined, rawCategory?: string): string {

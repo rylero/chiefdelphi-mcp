@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import { extractSnippet, scoreText, type ParsedQuery } from "./query.js";
+import { extractSnippet, looksHistorical, recencyScore, scoreText, type ParsedQuery } from "./query.js";
 
 export interface IndexedPost {
   topicId: number;
@@ -204,9 +204,21 @@ export function searchIndexedPosts(parsed: ParsedQuery, limit: number): IndexedP
       const detailHits = scoreText(text, parsed.tokens);
       return { hit, requiredHits, detailHits };
     })
-    .filter((row) => row.requiredHits > 0 || parsed.requiredTokens.length === 0)
-    .sort((a, b) => b.requiredHits - a.requiredHits || b.detailHits - a.detailHits || a.hit.rank - b.hit.rank);
-  return ranked.slice(0, limit).map((row) => row.hit);
+    .filter((row) => {
+      if (parsed.requiredTokens.length === 0) return true;
+      const need = Math.min(2, parsed.requiredTokens.length);
+      return row.requiredHits >= need;
+    })
+    .sort(
+      (a, b) =>
+        b.requiredHits - a.requiredHits ||
+        b.detailHits - a.detailHits ||
+        recencyScore(b.hit.topicId) - recencyScore(a.hit.topicId) ||
+        a.hit.rank - b.hit.rank,
+    );
+  const preferRecent = !looksHistorical(parsed.tokens) && ranked.some((row) => row.hit.topicId >= 300000);
+  const filtered = preferRecent ? ranked.filter((row) => row.hit.topicId >= 150000) : ranked;
+  return (filtered.length > 0 ? filtered : ranked).slice(0, limit).map((row) => row.hit);
 }
 
 function ftsSearch(match: string, tokens: string[], limit: number): IndexedPost[] {
