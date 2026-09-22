@@ -42,7 +42,7 @@ npm start
 npm run smoke
 ```
 
-Used by [discord-log-bot](https://github.com/rylero/discord-log-bot) as a stdio MCP server.
+Used by [RobotLogBot](https://github.com/rylero/RobotLogBot) as a stdio MCP server.
 
 ## Add it to Cursor
 
