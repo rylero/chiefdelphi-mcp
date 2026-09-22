@@ -1,0 +1,35 @@
+{
+  "name": "chiefdelphi-mcp",
+  "version": "0.2.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "smoke": "tsx src/smoke.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rylero/chiefdelphi-mcp.git"
+  },
+  "description": "Read-only MCP server for Chief Delphi posts and comments",
+  "type": "module",
+  "bin": {
+    "chiefdelphi-mcp": "src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "fast-xml-parser": "^5.11.1",
+    "node-html-parser": "^9.0.4",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
